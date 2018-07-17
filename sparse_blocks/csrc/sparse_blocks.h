@@ -9,7 +9,7 @@
 #ifdef WITH_CUDA
 #include "cuda/reduce_mask.h"
 #include "cuda/sparse_gather.h"
-#include "cuda/sparse_scatter.h"
+// #include "cuda/sparse_scatter.h"
 #endif
 
 at::Tensor reducemask_forward(const at::Tensor &mask,

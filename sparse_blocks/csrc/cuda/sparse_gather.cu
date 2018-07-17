@@ -62,7 +62,7 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
             hasInst = true; \
             AT_DISPATCH_ALL_TYPES(x.type(), "sparse gather", [&] { \
                 blockGatherTiled0<scalar_t, 512, RR, COMPUTE_R1(RR), RR, CC1, trans><<<lp.grid, lp.block, lp.shmemSize, stream>>>( \
-                    x.data<scalar_t>(), indices.data<const short>(), \
+                    x.data<scalar_t>(), indices.data<short>(), \
                     y.data<scalar_t>(), \
                     N, H, W, C, \
                     bOffsH0, bOffsW0, blockStrH, blockStrW); \
@@ -125,7 +125,7 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
         //printf("gather, C, bSzH, bSzW=%d, %d, %d, fittingC1=%d\n", C, bSzH, bSzW, lp.fittingC1);
         AT_DISPATCH_ALL_TYPES(x.type(), "sparse gather", [&] {
             blockGatherTiled1<scalar_t, 512><<<lp.grid, lp.block, lp.shmemSize, stream>>>(
-                x.data<scalar_t>(), indices.data<const short>(),
+                x.data<scalar_t>(), indices.data<short>(),
                 y.data<scalar_t>(), 
                 N, H, W, C, 
                 bOffsH0, bOffsW0, blockStrH, blockStrW,
