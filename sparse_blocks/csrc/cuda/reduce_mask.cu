@@ -197,7 +197,7 @@ at::Tensor reducemask_forward_cuda(const at::Tensor &mask,
     });
 
     THCudaCheck(cudaGetLastError());
-
+    
     // We only want to return the valid indices, hence we index into them.
     at::Tensor idx = at::arange(0, at::Scalar(bin_counts[0]).to<int>(), torch::CUDA(at::kLong));
     return at::index(active_block_idxs, idx);

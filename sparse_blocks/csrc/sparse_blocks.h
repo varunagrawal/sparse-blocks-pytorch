@@ -43,26 +43,32 @@ at::Tensor reducemask_forward(const at::Tensor &mask,
     }
     else
     {
-        // We should never need to come here 
+        // We should never need to come here
         // since for the CPU, we can just use the slower PyTorch version
         AT_ERROR("CPU version of ReduceMask should be handled by torch code, not C++ code");
     }
 }
 
-
-at::Tensor sparse_gather_forward(const at::Tensor &x)
+at::Tensor sparse_gather_forward(const at::Tensor &x,
+                                 const at::Tensor &indices,
+                                 int blockH, int blockW,
+                                 int blockStrH, int blockStrW,
+                                 int bOffsH0, int bOffsW0)
 {
     if (x.type().is_cuda())
     {
 #ifdef WITH_CUDA
-        return sparse_gather_forward_cuda(x);
+        return sparse_gather_forward_cuda(x, indices,
+                                          blockH, blockW,
+                                          blockStrH, blockStrW,
+                                          bOffsH0, bOffsW0);
 #else
         AT_ERROR("SparseGather not compiled with GPU support");
 #endif
-    }
-    else
-    {
-        return sparse_gather_forward_cpu(x);
+        // }
+        // else
+        // {
+        //     return sparse_gather_forward_cpu(x);
     }
 }
 
@@ -75,9 +81,9 @@ at::Tensor sparse_gather_backward(const at::Tensor &grad_y)
 #else
         AT_ERROR("SparseGather not compiled with GPU support");
 #endif
-    }
-    else
-    {
-        return sparse_gather_backward_cpu(grad_y);
+        // }
+        // else
+        // {
+        //     return sparse_gather_backward_cpu(grad_y);
     }
 }
