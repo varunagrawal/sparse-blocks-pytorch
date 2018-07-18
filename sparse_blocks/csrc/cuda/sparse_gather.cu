@@ -49,6 +49,8 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
     int W = x.size(2);
     int C = x.size(3);
  
+    bool transpose = true;
+
     int bin_count = indices.size(0);
 
     LaunchParams lp(C, blockH, blockW, bin_count);
@@ -61,8 +63,9 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
         if (blockH == RR && blockW == RR && lp.fittingC1 == CC1) { \
             hasInst = true; \
             AT_DISPATCH_ALL_TYPES(x.type(), "sparse gather", [&] { \
-                blockGatherTiled0<scalar_t, 512, RR, COMPUTE_R1(RR), RR, CC1, trans><<<lp.grid, lp.block, lp.shmemSize, stream>>>( \
-                    x.data<scalar_t>(), indices.data<short>(), \
+                blockGatherTiled0<scalar_t, 512, RR, COMPUTE_R1(RR), RR, CC1, trans> \
+                <<<lp.grid, lp.block, lp.shmemSize, stream>>>( \
+                    x.data<scalar_t>(), indices.data<int>(), \
                     y.data<scalar_t>(), \
                     N, H, W, C, \
                     bOffsH0, bOffsW0, blockStrH, blockStrW); \
@@ -112,6 +115,8 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
         CALL(81, CCC, transt) \
             { hasInst = false; }
 
+    // We always assume `transpose` from the original TensorFlow code is true 
+    // since we want the output as NCHW
     if (lp.fittingC1 >= 32) {
         SIZE_TEMPLATES(true, 32)
     } else if (lp.fittingC1 == 16) {
@@ -125,11 +130,11 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
         //printf("gather, C, bSzH, bSzW=%d, %d, %d, fittingC1=%d\n", C, bSzH, bSzW, lp.fittingC1);
         AT_DISPATCH_ALL_TYPES(x.type(), "sparse gather", [&] {
             blockGatherTiled1<scalar_t, 512><<<lp.grid, lp.block, lp.shmemSize, stream>>>(
-                x.data<scalar_t>(), indices.data<short>(),
+                x.data<scalar_t>(), indices.data<int>(),
                 y.data<scalar_t>(), 
                 N, H, W, C, 
                 bOffsH0, bOffsW0, blockStrH, blockStrW,
-                blockH, lp.bSzH1, blockW, lp.fittingC1, true);    
+                blockH, lp.bSzH1, blockW, lp.fittingC1, transpose);    
         });
     }
     #undef SIZE_TEMPLATES
