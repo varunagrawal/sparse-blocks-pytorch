@@ -53,7 +53,7 @@ template <typename T, int tNTHREADS, typename tHb, typename tH1b, typename tWb, 
 __device__ void blockGatherTiled_t(
     const T *x, // NHWC
     // currently only supporting single bin
-    const short *activeBlockIndices,
+    const int *activeBlockIndices,
     // variable size output but conservative worst-case memory alloc (0% sparsity, all blocks active)
     T *y,
     const int N, const int H, const int W, // C=tC is templated
@@ -162,7 +162,7 @@ template <typename T, int tNTHREADS, typename tHb, typename tH1b, typename tWb, 
 __device__ void blockScatterTiled_t(
     const T *x, // blockDim.x*tHb*tWb*tC - input tensor
     // currently only supporting single bin
-    const short *activeBlockIndices, // same indices as for blockGather
+    const int *activeBlockIndices, // same indices as for blockGather
     // variable size output but conservative worst-case memory alloc (0% sparsity, all blocks active)
     T *y,                                  // NHWC
     const int N, const int H, const int W, // C=tC is templated
@@ -291,7 +291,7 @@ template <typename T, int tNTHREADS, int RR, int RR1, int SS, int CC1, bool TR>
 __global__ void blockGatherTiled0(
     T *x, // NHWC
     // currently only supporting single bin
-    const short *activeBlockIndices, // result
+    const int *activeBlockIndices, // result
     // variable size output but requires conservative worst-case memory alloc (0% sparsity, all blocks active)
     T *y,
     const int N, const int H, const int W, const int C, // dimensions for x
@@ -308,7 +308,7 @@ template <typename T, int tNTHREADS, int RR, int RR1, int SS, int CC1, bool ADD,
 __global__ void blockScatterTiled0(
     T *x, // NHWC
     // currently only supporting single bin
-    const short *activeBlockIndices, // result
+    const int *activeBlockIndices, // result
     // variable size output but requires conservative worst-case memory alloc (0% sparsity, all blocks active)
     T *y,
     const int N, const int H, const int W, const int C, // dimensions for x
@@ -326,8 +326,8 @@ __global__ void blockScatterTiled0(
 // versions of kernel entry points with variable-based parameters
 template <typename T, int tNTHREADS>
 __global__ void blockGatherTiled1(
-    T *x,                            // NHWC
-    const short *activeBlockIndices, // result
+    T *x,                          // NHWC
+    const int *activeBlockIndices, // result
     T *y,
     const int N, const int H, const int W, const int C, // dimensions for x
     const int bOffsH0, const int bOffsW0,               // generally negative - first block element offset for correct padding
@@ -344,7 +344,7 @@ template <typename T, int tNTHREADS>
 __global__ void blockScatterTiled1(
     T *x, // NHWC
     // currently only supporting single bin
-    const short *activeBlockIndices, // result
+    const int *activeBlockIndices, // result
     // variable size output but requires conservative worst-case memory alloc (0% sparsity, all blocks active)
     T *y,
     const int N, const int H, const int W, const int C, // dimensions for x
