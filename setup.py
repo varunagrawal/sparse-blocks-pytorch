@@ -36,8 +36,9 @@ def get_extensions():
             include_dirs=include_dirs,
             define_macros=define_macros,
             # need to set NVIDIA compute capability flags to compile correctly
-            extra_compile_args={'cxx': ['-g'],
-                                'nvcc': ['-gencode=arch=compute_61,code=sm_61']}
+            # also set `-w` to disable warnings in the output during compilation.
+            extra_compile_args={'cxx': ['-g', '-w'],
+                                'nvcc': ['-gencode=arch=compute_61,code=sm_61', '-w']}
         )
     ]
 
