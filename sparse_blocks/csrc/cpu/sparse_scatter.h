@@ -8,3 +8,5 @@ at::Tensor sparse_scatter_forward_cpu(const at::Tensor &x,
                                       int blockStrH, int blockStrW,
                                       int bOffsH0, int bOffsW0,
                                       bool add, bool atomic);
+
+at::Tensor sparse_scatter_backward_cpu(at::Tensor grad_y);

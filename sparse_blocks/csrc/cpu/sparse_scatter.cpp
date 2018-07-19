@@ -74,7 +74,6 @@ at::Tensor sparse_scatter_forward_cpu(const at::Tensor &x,
     int W = ybase.size(3);
 
     bool transpose = true;
-    bool hasInst = false;
 
     int num_active = indices.size(0);
 
@@ -90,17 +89,22 @@ at::Tensor sparse_scatter_forward_cpu(const at::Tensor &x,
     at::Tensor y = at::zeros(ybase.sizes(), torch::CPU(at::kFloat));
     y.copy_(ybase);
 
-    AT_DISPATCH_FLOATING_TYPES(x.type(), "sparse_scatter_forward_cpu", ([&] {
-                                   sparse_scatter<scalar_t>(
-                                       x.data<scalar_t>(),
-                                       N, H, W, C,
-                                       y.data<scalar_t>(),
-                                       bOffsH0, bOffsW0,
-                                       blockH, blockW,
-                                       blockStrH, blockStrW,
-                                       num_active, indices.data<int>(),
-                                       add, transpose, atomic);
-                               }));
+    AT_DISPATCH_ALL_TYPES(x.type(), "sparse_scatter_forward_cpu", ([&] {
+                              sparse_scatter<scalar_t>(
+                                  x.data<scalar_t>(),
+                                  N, H, W, C,
+                                  y.data<scalar_t>(),
+                                  bOffsH0, bOffsW0,
+                                  blockH, blockW,
+                                  blockStrH, blockStrW,
+                                  num_active, indices.data<int>(),
+                                  add, transpose, atomic);
+                          }));
 
     return y;
+}
+
+at::Tensor sparse_scatter_backward_cpu(at::Tensor grad_y)
+{
+    AT_ERROR("Backward pass of SparseScatter is SparseGather. Please directly call that.");
 }
