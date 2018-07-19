@@ -40,12 +40,13 @@ at::Tensor sparse_scatter_forward_cuda(const at::Tensor &x,
                                        int bOffsH0, int bOffsW0,
                                        bool add, bool atomic)
 {
-    // Assume input is NHWC to leverage memory locality.
-    int N = x.size(0);
-    int H = x.size(1);
-    int W = x.size(2);
-    int C = x.size(3);
+    // We need the dimensions of the original feature map to scatter to.
+    int N = ybase.size(0);
+    int C = ybase.size(1);
+    int H = ybase.size(2);
+    int W = ybase.size(3);
 
+    // flag to indicate that x is in NCHW format
     bool transpose = true;
 
     int num_active = indices.size(0);
@@ -60,11 +61,12 @@ at::Tensor sparse_scatter_forward_cuda(const at::Tensor &x,
 
     at::Tensor y = at::zeros(ybase.sizes(), torch::CUDA(at::kFloat));
     y.copy_(ybase);
+    
+    bool hasInst = false;
 
     cudaStream_t stream = at::globalContext().getCurrentCUDAStream();
 
     LaunchParams lp(C, blockH, blockW, num_active);
-    bool hasInst = false;
  
     #define CALL(RR, CC1, addt, transt) \
         if (blockH == RR && blockW == RR && lp.fittingC1 == CC1 && atomic == false) { \

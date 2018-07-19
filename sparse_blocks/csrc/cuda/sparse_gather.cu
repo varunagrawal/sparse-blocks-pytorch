@@ -54,11 +54,13 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
     int bin_count = indices.size(0);
 
     LaunchParams lp(C, blockH, blockW, bin_count);
+    
     bool hasInst = false;
 
     at::Tensor y = at::zeros({bin_count, C, blockH, blockW}, torch::CUDA(at::kFloat));
+    
     cudaStream_t stream = at::globalContext().getCurrentCUDAStream();
-        
+    
     #define CALL(RR, CC1, trans) \
         if (blockH == RR && blockW == RR && lp.fittingC1 == CC1) { \
             hasInst = true; \
