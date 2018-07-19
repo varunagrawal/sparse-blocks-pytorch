@@ -2,9 +2,8 @@
 
 #include <torch/torch.h>
 
-// #include "cpu/reduce_mask.h"
 #include "cpu/sparse_gather.h"
-// #include "cpu/sparse_scatter.h"
+#include "cpu/sparse_scatter.h"
 
 #ifdef WITH_CUDA
 #include "cuda/reduce_mask.h"
@@ -67,10 +66,13 @@ at::Tensor sparse_gather_forward(const at::Tensor &x, // should be NHWC
 #else
         AT_ERROR("SparseGather not compiled with GPU support");
 #endif
-        // }
-        // else
-        // {
-        //     return sparse_gather_forward_cpu(x);
+    }
+    else
+    {
+        return sparse_gather_forward_cpu(x, indices,
+                                         blockH, blockW,
+                                         blockStrH, blockStrW,
+                                         bOffsH0, bOffsW0);
     }
 }
 
@@ -83,10 +85,10 @@ at::Tensor sparse_gather_backward(const at::Tensor &grad_y)
 #else
         AT_ERROR("SparseGather not compiled with GPU support");
 #endif
-        // }
-        // else
-        // {
-        //     return sparse_gather_backward_cpu(grad_y);
+    }
+    else
+    {
+        return sparse_gather_backward_cpu(grad_y);
     }
 }
 
@@ -102,7 +104,6 @@ at::Tensor sparse_scatter_forward(const at::Tensor &x, // should be NHWC
     {
 #ifdef WITH_CUDA
         // returns tensor of size (NCHW)
-        // the kernel transposes the output
         return sparse_scatter_forward_cuda(x, indices, ybase,
                                            blockH, blockW,
                                            blockStrH, blockStrW,
@@ -111,10 +112,14 @@ at::Tensor sparse_scatter_forward(const at::Tensor &x, // should be NHWC
 #else
         AT_ERROR("SparseScatter not compiled with GPU support");
 #endif
-        // }
-        // else
-        // {
-        //     return sparse_scatter_forward_cpu(x);
+    }
+    else
+    {
+        return sparse_scatter_forward_cpu(x, indices, ybase,
+                                          blockH, blockW,
+                                          blockStrH, blockStrW,
+                                          bOffsH0, bOffsW0,
+                                          add, atomic);
     }
 }
 
@@ -127,9 +132,9 @@ at::Tensor sparse_scatter_backward(const at::Tensor &grad_y)
 #else
         AT_ERROR("SparseScatter not compiled with GPU support");
 #endif
-        // }
-        // else
-        // {
-        //     return sparse_scatter_backward_cpu(grad_y);
+    }
+    else
+    {
+        return sparse_scatter_backward_cpu(grad_y);
     }
 }
