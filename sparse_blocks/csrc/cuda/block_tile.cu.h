@@ -264,7 +264,8 @@ __device__ void blockScatterTiled_t(
         if (w0 < W && h0 < H && c < C)
         {
             float readVal = tile.val(tileH, intraBw, tileC);
-            int offsWrite = bn0Offs + h0 * W * C + w0 * C + c;
+            // int offsWrite = bn0Offs + h0 * W * C + w0 * C + c;  // This is in NHWC format
+            int offsWrite = bn0Offs + c * H * W + h0 * W + w0; // This is in NCHW format
             if (add)
             {
                 if (atomic)
