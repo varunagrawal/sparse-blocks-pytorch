@@ -103,7 +103,18 @@ __device__ void blockGatherTiled_t(
         unsigned w0 = bw0 + intraBw;
         unsigned h0 = bh0 + tileH + r0;
         unsigned c = tileC + C1 * c1i;
-        int offsRead = bn0Offs + h0 * WC + w0 * C + c;
+        int offsRead;
+        if (transpose)
+        {
+            // For [Py]Torch we should be reading the data as NCHW
+            // since Torch stores the data as NCHW
+            offsRead = bn0Offs + (c * H * W) + (h0 * W) + w0;
+        }
+        else
+        {
+            // Should not be used
+            offsRead = bn0Offs + (h0 * WC) + (w0 * C) + c;
+        }
         float readVal = 0.0f;
         if (w0 < W && h0 < H && c < C)
             readVal = __ldg(x + offsRead);
@@ -147,11 +158,15 @@ __device__ void blockGatherTiled_t(
             continue;
         int offsWrite;
         if (transpose)
+        {
             // NCHW offset
             offsWrite = blockIdx.x * RSC + c * RS + intraBh * S + intraBw;
+        }
         else
+        {
             // NHWC offset
             offsWrite = blockIdx.x * RSC + intraBh * SC + intraBw * C + c;
+        }
 
         y[offsWrite] = readVal;
     }
@@ -231,7 +246,7 @@ __device__ void blockScatterTiled_t(
 
         int offsRead;
         if (transpose)
-            // NCHW offset
+            // NCHW offset - Should be used for [Py]Torch as this is the default memory layout
             offsRead = blockIdx.x * RSC + c * RS + intraBh * S + intraBw;
         else
             offsRead = blockIdx.x * RSC + intraBh * SC + intraBw * C + c;
@@ -264,8 +279,18 @@ __device__ void blockScatterTiled_t(
         if (w0 < W && h0 < H && c < C)
         {
             float readVal = tile.val(tileH, intraBw, tileC);
-            // int offsWrite = bn0Offs + h0 * W * C + w0 * C + c;  // This is in NHWC format
-            int offsWrite = bn0Offs + c * H * W + h0 * W + w0; // This is in NCHW format
+            int offsWrite;
+            if (transpose)
+            {
+                // This is in NCHW format
+                offsWrite = bn0Offs + c * H * W + h0 * W + w0;
+            }
+            else
+            {
+                // This is in NHWC format
+                offsWrite = bn0Offs + h0 * W * C + w0 * C + c;
+            }
+
             if (add)
             {
                 if (atomic)
