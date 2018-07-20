@@ -4,35 +4,7 @@ from torch.autograd import Function
 from torch import nn
 
 from sparse_blocks import _C
-from sparse_blocks import utils
-
-
-def get_block_params(H, W, block_size, kernel_size=(3, 3), stride=(1, 1), padding=None):
-    if padding is None:
-        padding = "SAME"
-
-    pad_h0, pad_h1, pad_w0, pad_w1 = utils.get_padding(H, W,
-                                                       kernel_size,
-                                                       stride, padding)
-
-    block_offset = [-pad_h0, -pad_w0]
-
-    block_stride = [block_size[0] - kernel_size[0] + stride[0],
-                    block_size[1] - kernel_size[1] + stride[1]]
-
-    x_pad_shape = [H + pad_h0 + pad_h1,
-                   W + pad_w0 + pad_w1]
-
-    if padding == "SAME":
-        out_shape = [int(np.ceil(float(x_pad_shape[0]) / stride[0])),
-                     int(np.ceil(float(x_pad_shape[1]) / stride[1]))]
-    elif padding == "VALID":
-        out_shape = [int(np.ceil(float(x_pad_shape[0] - kernel_size[0] + 1) / stride[0])),
-                     int(np.ceil(float(x_pad_shape[1] - kernel_size[1] + 1) / stride[1]))]
-
-    block_cnt = [out_shape[0], out_shape[1]]
-
-    return block_stride, block_offset, block_cnt, (pad_w0, pad_w1, pad_h0, pad_h1)
+from sparse_blocks.utils import get_block_params
 
 
 class ReduceMaskFunc(Function):

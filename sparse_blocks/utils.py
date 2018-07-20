@@ -76,3 +76,27 @@ def get_output_shape(input_shape, out_channels, kernel_size, strides, padding):
         get_out_size_1d(input_shape[2], kernel_size[0], strides[0], padding),
         get_out_size_1d(input_shape[3], kernel_size[1], strides[1], padding),
     ]
+
+
+def get_block_params(H, W, block_size, kernel_size=(3, 3), stride=(1, 1), padding=None):
+    if padding is None:
+        padding = "SAME"
+
+    pad_h0, pad_h1, pad_w0, pad_w1 = get_padding(H, W,
+                                                 kernel_size,
+                                                 stride, padding)
+
+    block_offset = [-pad_h0, -pad_w0]
+
+    block_stride = [block_size[0] - kernel_size[0] + stride[0],
+                    block_size[1] - kernel_size[1] + stride[1]]
+
+    x_pad_shape = [H + pad_h0 + pad_h1,
+                   W + pad_w0 + pad_w1]
+
+    out_shape = [get_out_size_1d(x_pad_shape[0], kernel_size[0], stride[0], padding),
+                 get_out_size_1d(x_pad_shape[1], kernel_size[1], stride[1], padding)]
+
+    block_cnt = [out_shape[0], out_shape[1]]
+
+    return block_stride, block_offset, block_cnt, (pad_w0, pad_w1, pad_h0, pad_h1)
