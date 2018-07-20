@@ -14,15 +14,13 @@ class SparseGatherFunc(Function):
         ctx.block_stride = block_stride
         ctx.block_offset = block_offset
 
-        # The extension expects the input tensor as (NHWC)
-        x = x.permute(0, 2, 3, 1)
-
         ctx.save_for_backward(x, indices)
 
         y = _C.sparse_gather_forward(x, indices,
                                      block_size[0], block_size[1],
                                      block_stride[0], block_stride[1],
-                                     block_offset[0], block_offset[1])
+                                     block_offset[0], block_offset[1],
+                                     True)
 
         # output is (NCWH)
         return y
@@ -33,9 +31,7 @@ class SparseGatherFunc(Function):
         # output base tensor to add on top of. ctx.x should be (NHWC)
         base = torch.zeros(ctx.x.size())
 
-        # The extension expects the input tensor as (NHWC)
-        dy = dy.permute(0, 2, 3, 1)
-
+        # We use NCHW since Torch stores the data that way
         dx = _C.sparse_scatter_forward(dy, indices, base,
                                        ctx.block_size[0], ctx.block_size[1],
                                        ctx.block_stride[0], ctx.block_stride[1],
@@ -54,10 +50,6 @@ class SparseScatterFunc(Function):
         ctx.block_offset = block_offset
         ctx.add = add
         ctx.atomic = atomic
-
-        # The extension expects the input tensor as (NHWC)
-        x = x.permute(0, 2, 3, 1)
-        # y_base = y_base.permute(0, 2, 3, 1)
 
         ctx.save_for_backward(x, indices)
 
@@ -81,8 +73,7 @@ class SparseScatterFunc(Function):
 
         # return a list of gradients of output with respect to each input
         if not ctx.add:
-            dy_reshaped = dy.permute(0, 2, 3, 1)
-            dy_base = torch.ones(dy_reshaped.shape)
+            dy_base = torch.ones(dy.shape)
             # scatter blocks of zeroes over a base tensor of ones to compute a stamp-out gradient mask for dy_dybase
 
             stamp_out_blocks = _C.sparse_scatter_forward(torch.zeros(x.size()), indices, dy_base,
