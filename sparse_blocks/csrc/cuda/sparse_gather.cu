@@ -43,11 +43,11 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
                                       int blockStrH, int blockStrW,
                                       int bOffsH0, int bOffsW0)
 {
-    // Assume input is NHWC to leverage memory locality.
+    // Input is given as NCHW
     int N = x.size(0);
-    int H = x.size(1);
-    int W = x.size(2);
-    int C = x.size(3);
+    int C = x.size(1);
+    int H = x.size(2);
+    int W = x.size(3);
  
     bool transpose = true;
 

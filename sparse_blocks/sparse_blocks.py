@@ -15,7 +15,7 @@ class SparseGatherFunc(Function):
         ctx.block_offset = block_offset
 
         # The extension expects the input tensor as (NHWC)
-        x = x.permute(0, 2, 3, 1)
+        # x = x.permute(0, 2, 3, 1)
 
         ctx.save_for_backward(x, indices)
 
@@ -34,7 +34,7 @@ class SparseGatherFunc(Function):
         base = torch.zeros(ctx.x.size())
 
         # The extension expects the input tensor as (NHWC)
-        dy = dy.permute(0, 2, 3, 1)
+        # dy = dy.permute(0, 2, 3, 1)
 
         dx = _C.sparse_scatter_forward(dy, indices, base,
                                        ctx.block_size[0], ctx.block_size[1],
@@ -56,7 +56,8 @@ class SparseScatterFunc(Function):
         ctx.atomic = atomic
 
         # The extension expects the input tensor as (NHWC)
-        x = x.permute(0, 2, 3, 1)
+        # x = x.permute(0, 2, 3, 1)
+        # print(x.shape)
         # y_base = y_base.permute(0, 2, 3, 1)
 
         ctx.save_for_backward(x, indices)
@@ -81,8 +82,10 @@ class SparseScatterFunc(Function):
 
         # return a list of gradients of output with respect to each input
         if not ctx.add:
-            dy_reshaped = dy.permute(0, 2, 3, 1)
-            dy_base = torch.ones(dy_reshaped.shape)
+            # dy_reshaped = dy.permute(0, 2, 3, 1)
+            # dy_base = torch.ones(dy_reshaped.shape)
+            dy_base = torch.ones(dy.shape)
+
             # scatter blocks of zeroes over a base tensor of ones to compute a stamp-out gradient mask for dy_dybase
 
             stamp_out_blocks = _C.sparse_scatter_forward(torch.zeros(x.size()), indices, dy_base,

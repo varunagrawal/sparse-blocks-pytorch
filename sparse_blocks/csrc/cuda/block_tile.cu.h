@@ -67,7 +67,7 @@ __device__ void blockGatherTiled_t(
     const int transpose = tTransposeArg.get();
     const int C = tCArg.get();
     const int SC = S * C, RSC = R * S * C;
-    const int WC = W * C;
+    const int WC = W * C, HC = H * C, HW = H * W;
     assert(R1 <= R);
     assert(C1 <= C);
 
@@ -103,7 +103,9 @@ __device__ void blockGatherTiled_t(
         unsigned w0 = bw0 + intraBw;
         unsigned h0 = bh0 + tileH + r0;
         unsigned c = tileC + C1 * c1i;
-        int offsRead = bn0Offs + h0 * WC + w0 * C + c;
+        // Input is NCHW
+        int offsRead = bn0Offs + c * HW + h0 * W + w0;
+        // int offsRead = bn0Offs + h0 * WC + w0 * C + c;
         float readVal = 0.0f;
         if (w0 < W && h0 < H && c < C)
             readVal = __ldg(x + offsRead);
