@@ -48,11 +48,12 @@ at::Tensor reducemask_forward(const at::Tensor &mask,
     }
 }
 
-at::Tensor sparse_gather_forward(const at::Tensor &x, // should be NHWC
+at::Tensor sparse_gather_forward(const at::Tensor &x, // should be NCHW
                                  const at::Tensor &indices,
                                  int blockH, int blockW,
                                  int blockStrH, int blockStrW,
-                                 int bOffsH0, int bOffsW0)
+                                 int bOffsH0, int bOffsW0,
+                                 bool transpose = true)
 {
     if (x.type().is_cuda())
     {
@@ -62,7 +63,8 @@ at::Tensor sparse_gather_forward(const at::Tensor &x, // should be NHWC
         return sparse_gather_forward_cuda(x, indices,
                                           blockH, blockW,
                                           blockStrH, blockStrW,
-                                          bOffsH0, bOffsW0);
+                                          bOffsH0, bOffsW0,
+                                          transpose);
 #else
         AT_ERROR("SparseGather not compiled with GPU support");
 #endif
@@ -72,7 +74,8 @@ at::Tensor sparse_gather_forward(const at::Tensor &x, // should be NHWC
         return sparse_gather_forward_cpu(x, indices,
                                          blockH, blockW,
                                          blockStrH, blockStrW,
-                                         bOffsH0, bOffsW0);
+                                         bOffsH0, bOffsW0,
+                                         transpose);
     }
 }
 
@@ -92,7 +95,7 @@ at::Tensor sparse_gather_backward(const at::Tensor &grad_y)
     }
 }
 
-at::Tensor sparse_scatter_forward(const at::Tensor &x, // should be NHWC
+at::Tensor sparse_scatter_forward(const at::Tensor &x, // should be NCHW
                                   const at::Tensor &indices,
                                   at::Tensor &ybase,
                                   int blockH, int blockW,

@@ -48,15 +48,14 @@ at::Tensor sparse_gather_forward_cpu(const at::Tensor &x,
                                      const at::Tensor &indices,
                                      int blockH, int blockW,
                                      int blockStrH, int blockStrW,
-                                     int bOffsH0, int bOffsW0)
+                                     int bOffsH0, int bOffsW0,
+                                     bool transpose = true)
 {
-    // Assume input is NHWC to leverage memory locality.
+    // Assume input is NCHW to leverage memory locality.
     int N = x.size(0);
-    int H = x.size(1);
-    int W = x.size(2);
-    int C = x.size(3);
-
-    bool transpose = true;
+    int C = x.size(1);
+    int H = x.size(2);
+    int W = x.size(3);
 
     int num_active = indices.size(0);
 
