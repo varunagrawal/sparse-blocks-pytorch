@@ -2,6 +2,7 @@
 
 #include <torch/torch.h>
 #include <ATen/ATen.h>
+#include <ATen/cuda/CUDAContext.h>
 #include <THC/THC.h>
 #include <THC/THCAtomics.cuh>
 #include <THC/THCDeviceUtils.cuh>
@@ -64,7 +65,7 @@ at::Tensor sparse_scatter_forward_cuda(const at::Tensor &x,
     
     bool hasInst = false;
 
-    cudaStream_t stream = at::globalContext().getCurrentCUDAStream();
+    at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
 
     LaunchParams lp(C, blockH, blockW, num_active);
  

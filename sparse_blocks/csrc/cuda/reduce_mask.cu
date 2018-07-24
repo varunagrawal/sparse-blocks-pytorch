@@ -8,6 +8,7 @@
 
 #include <torch/torch.h>
 #include <ATen/ATen.h>
+#include <ATen/cuda/CUDAContext.h>
 #include <THC/THC.h>
 #include <THC/THCAtomics.cuh>
 #include <THC/THCDeviceUtils.cuh>
@@ -179,7 +180,7 @@ at::Tensor reducemask_forward_cuda(const at::Tensor &mask,
     
     dim3 grid(blockCntW, blockCntH, N);
     dim3 block(std::min(DIV_CEIL(blockH*blockW, 32)*32, 1024), 1, 1);
-    cudaStream_t stream = at::globalContext().getCurrentCUDAStream();
+    at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
     
     AT_DISPATCH_ALL_TYPES(mask.type(), "reducemask_forward", [&] {
         reducemask_forward_cuda_kernel<scalar_t><<<grid, block, 0, stream>>>(

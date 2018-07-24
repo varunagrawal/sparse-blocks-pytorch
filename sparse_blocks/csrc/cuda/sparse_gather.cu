@@ -8,6 +8,7 @@
 
 #include <torch/torch.h>
 #include <ATen/ATen.h>
+#include <ATen/cuda/CUDAContext.h>
 #include <THC/THC.h>
 #include <THC/THCAtomics.cuh>
 #include <THC/THCDeviceUtils.cuh>
@@ -58,7 +59,7 @@ at::Tensor sparse_gather_forward_cuda(const at::Tensor &x,
 
     at::Tensor y = at::zeros({bin_count, C, blockH, blockW}, torch::CUDA(at::kFloat));
     
-    cudaStream_t stream = at::globalContext().getCurrentCUDAStream();
+    at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
     
     #define CALL(RR, CC1, trans) \
         if (blockH == RR && blockW == RR && lp.fittingC1 == CC1) { \
