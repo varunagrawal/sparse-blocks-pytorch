@@ -29,7 +29,7 @@ class SparseGatherFunc(Function):
     def backward(ctx, dy):
         x, indices = ctx.saved_tensors
         # output base tensor to add on top of. ctx.x should be (NHWC)
-        base = torch.zeros(x.size())
+        base = torch.zeros(x.size(), device=dy.device)
 
         # We use NCHW since Torch stores the data that way
         dx = _C.sparse_scatter_forward(dy, indices, base,
@@ -76,10 +76,10 @@ class SparseScatterFunc(Function):
 
         # return a list of gradients of output with respect to each input
         if not ctx.add:
-            dy_base = torch.ones(dy.shape)
+            dy_base = torch.ones(dy.shape, device=dy.device)
 
             # scatter blocks of zeroes over a base tensor of ones to compute a stamp-out gradient mask for dy_dybase
-            blocks_x = torch.zeros(x.size()).cuda()
+            blocks_x = torch.zeros(x.size(), device=dy.device)
             stamp_out_blocks = _C.sparse_scatter_forward(blocks_x, indices, dy_base,
                                                          ctx.block_size[0], ctx.block_size[1],
                                                          ctx.block_stride[0], ctx.block_stride[1],
