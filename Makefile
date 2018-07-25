@@ -9,7 +9,7 @@ build: clean
 
 clean:
     pip uninstall sparse-blocks -y
-    rm -rf sparse_blocks.egg-info build dist
+    # rm -rf sparse_blocks.egg-info build dist
 
 test:
     pytest -s

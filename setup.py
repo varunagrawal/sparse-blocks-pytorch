@@ -52,7 +52,7 @@ requirements = [
 setup(
     # Metadata
     name='sparse-blocks',
-    version="1.2",
+    version="1.5",
     author='Varun Agrawal',
     author_email='varunagrawal@gatech.edu',
     url='https://varunagrawal.github.io',
