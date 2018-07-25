@@ -158,6 +158,14 @@ def convert_mask_to_indices(mask, block_size, kernel_size, stride, padding, thre
     return indices
 
 
+def sort(x):
+        # x is always (N,3)
+    d = x.size(0)
+    k = (d*d)*x[:, 0] + d*x[:, 1] + x[:, 2]
+    _, idxs = torch.sort(k)
+    return torch.index_select(x, 0, idxs)
+
+
 def test_reduce_mask():
     mask = np.array(
         [[
@@ -176,7 +184,7 @@ def test_reduce_mask():
     mask = torch.from_numpy(mask)
     mask.unsqueeze_(1)
 
-    red = ReduceMask(0, block_size=[3, 3], kernel_size=[3, 3])
+    red = ReduceMask(mask.shape[2:4], 0, block_size=[3, 3], kernel_size=[3, 3])
     y, _ = red(mask)
     y = y[:, 1:3]
     # print("CPU", y, y.shape)
@@ -186,5 +194,5 @@ def test_reduce_mask():
     red = red.cuda()
     y, _ = red(mask.cuda())
     # print("GPU", y, y.shape)
-    y = y[:, 1:3].cpu()
+    y = sort(y)[:, 1:3].cpu()
     assert np.array_equal(y.numpy(), gt_indices), "ReduceMask GPU is incorrect"
