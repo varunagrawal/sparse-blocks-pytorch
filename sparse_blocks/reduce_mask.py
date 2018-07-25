@@ -31,8 +31,8 @@ class ReduceMaskFunc(Function):
             mask_ = torch.squeeze(mask_, 1)  # remove channel dimension
             output = torch.nonzero(mask_ > threshold)
 
-        sorted_output = ReduceMaskFunc._sort(output)
-        return sorted_output
+        # output = ReduceMaskFunc._sort(output)
+        return output
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -48,7 +48,7 @@ class ReduceMaskFunc(Function):
 
 
 class ReduceMask(nn.Module):
-    def __init__(self, threshold, block_size, kernel_size=(3, 3), stride=(1, 1), padding=None, avg_pool=False):
+    def __init__(self, mask_size, threshold, block_size, kernel_size=(3, 3), stride=(1, 1), padding=None, avg_pool=False):
         super().__init__()
         self.threshold = threshold
         self.block_size = block_size
@@ -56,13 +56,16 @@ class ReduceMask(nn.Module):
         self.stride = stride
         self.padding = padding
         self.avg_pool = avg_pool
+        self.block_stride, \
+            self.block_offset, \
+            self.block_cnt, \
+            self.padding = get_block_params(mask_size[0], mask_size[1],
+                                            self.block_size, self.kernel_size,
+                                            self.stride, padding=None)
 
     def forward(self, mask):
-        block_stride, block_offset, block_cnt, padding = get_block_params(mask.size(2), mask.size(3),
-                                                                          self.block_size, self.kernel_size, self.stride, padding=None)
-
         y = ReduceMaskFunc.apply(mask, self.threshold,
-                                 self.block_size, block_stride,
-                                 block_offset, block_cnt,
-                                 padding, self.avg_pool)
-        return y, (self.block_size, block_stride, block_offset)
+                                 self.block_size, self.block_stride,
+                                 self.block_offset, self.block_cnt,
+                                 self.padding, self.avg_pool)
+        return y, (self.block_size, self.block_stride, self.block_offset)
