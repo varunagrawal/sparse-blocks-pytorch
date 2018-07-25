@@ -27,9 +27,9 @@ class SparseGatherFunc(Function):
 
     @staticmethod
     def backward(ctx, dy):
-        _, indices = ctx.saved_tensors
+        x, indices = ctx.saved_tensors
         # output base tensor to add on top of. ctx.x should be (NHWC)
-        base = torch.zeros(ctx.x.size())
+        base = torch.zeros(x.size())
 
         # We use NCHW since Torch stores the data that way
         dx = _C.sparse_scatter_forward(dy, indices, base,
@@ -39,12 +39,14 @@ class SparseGatherFunc(Function):
                                        True, True)
 
         # output is (NCWH)
-        return dx
+        return dx, None, None, None, None
 
 
 class SparseScatterFunc(Function):
     @staticmethod
-    def forward(ctx, x, y_base, indices, block_size, block_stride, block_offset, add=False, atomic=False):
+    def forward(ctx, x, y_base, indices,
+                block_size, block_stride, block_offset,
+                add=False, atomic=True):
         ctx.block_size = block_size
         ctx.block_stride = block_stride
         ctx.block_offset = block_offset
@@ -67,27 +69,28 @@ class SparseScatterFunc(Function):
         x, indices = ctx.saved_tensors
 
         dx = _C.sparse_gather_forward(dy, indices,
-                                      ctx.block_size[0], ctx.block_size[1],
+                                      3, 3,
                                       ctx.block_stride[0], ctx.block_stride[1],
-                                      ctx.block_offset[0], ctx.block_offset[1])
+                                      ctx.block_offset[0], ctx.block_offset[1],
+                                      True)
 
         # return a list of gradients of output with respect to each input
         if not ctx.add:
             dy_base = torch.ones(dy.shape)
-            # scatter blocks of zeroes over a base tensor of ones to compute a stamp-out gradient mask for dy_dybase
 
-            stamp_out_blocks = _C.sparse_scatter_forward(torch.zeros(x.size()), indices, dy_base,
+            # scatter blocks of zeroes over a base tensor of ones to compute a stamp-out gradient mask for dy_dybase
+            blocks_x = torch.zeros(x.size()).cuda()
+            stamp_out_blocks = _C.sparse_scatter_forward(blocks_x, indices, dy_base,
                                                          ctx.block_size[0], ctx.block_size[1],
                                                          ctx.block_stride[0], ctx.block_stride[1],
                                                          ctx.block_size[0], ctx.block_offset[1],
                                                          False, ctx.atomic)
             dy_dybase = dy * stamp_out_blocks
-
-            return dx, dy_dybase
+            return dx, dy_dybase, None, None, None, None, None, None, None
 
         else:
             # d(x+ybase)/dybase = 1, so just pass back grad as dout_dybase
-            return dx, dy
+            return dx, dy, None, None, None, None, None, None, None
 
 
 class SparseGather(nn.Module):
@@ -105,7 +108,7 @@ class SparseScatter(nn.Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.out_channels = out_channels
-        self.padding = padding or 'VALID'
+        self.padding = padding or 'SAME'
         self.add = add
         self.atomic = atomic
 
