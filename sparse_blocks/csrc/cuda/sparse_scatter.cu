@@ -60,8 +60,17 @@ at::Tensor sparse_scatter_forward_cuda(const at::Tensor &x,
         }
     }
 
-    at::Tensor y = at::zeros(ybase.sizes(), torch::CUDA(at::kFloat));
-    y.copy_(ybase);
+    at::Tensor y;
+    if (add)
+    {
+        y = ybase;
+    }
+    else
+    {
+        y = at::zeros(ybase.sizes(), x.type());
+    }
+    // at::Tensor y = at::zeros(ybase.sizes(), torch::CUDA(at::kFloat));
+    // y.copy_(ybase);
     
     bool hasInst = false;
 
