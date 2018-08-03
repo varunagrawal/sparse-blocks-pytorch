@@ -4,6 +4,13 @@ from torchvision import models
 from sparse_blocks import ReduceMask, SparseGather, SparseScatter
 import pendulum
 
+import logging
+
+logging.basicConfig()
+logging.getLogger().setLevel(logging.DEBUG)
+
+logger = logging.Logger(__name__)
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
@@ -22,6 +29,7 @@ class ResidualBlock(nn.Module):
         self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
+        start = pendulum.now()
         shortcut = x
 
         x = self.conv1(x)
@@ -39,6 +47,9 @@ class ResidualBlock(nn.Module):
         x += shortcut
         x = self.relu(x)
 
+        end = pendulum.now()
+        logger.debug("ResidualBlock time:\t{}".format(
+            (end-start).as_timedelta()))
         return x
 
 
@@ -71,19 +82,21 @@ class SparseBlock(nn.Module):
         self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x, mask):
-        # reduce_time = pendulum.now()
+        reduce_time = pendulum.now()
         indices, (block_size, block_stride, block_offset) = self.reduce(mask)
-        # print("ReduceMask time: ", (pendulum.now() - reduce_time).microseconds)
+        logger.debug("ReduceMask time:\t{}".format(
+            (pendulum.now() - reduce_time).as_timedelta()))
 
-        # gather_time = pendulum.now()
+        gather_time = pendulum.now()
         dense_x = self.sparse_gather(x, indices,
                                      block_size, block_stride,
                                      block_offset)
-        # print("SparseGather time: ", (pendulum.now() - gather_time).microseconds)
+        logger.debug("SparseGather time:\t{}".format(
+            (pendulum.now() - gather_time).as_timedelta()))
 
-        # print("dense_x:", dense_x.shape)
+        # logger.debug("dense_x:{}".format(dense_x.shape))
 
-        # conv_start = pendulum.now()
+        conv_start = pendulum.now()
         dense_x = self.conv1(dense_x)
         dense_x = self.bn1(dense_x)
         dense_y = self.relu(dense_x)
@@ -92,25 +105,26 @@ class SparseBlock(nn.Module):
         dense_y = self.relu(dense_x)
         dense_x = self.conv3(dense_x)
         dense_x = self.bn3(dense_x)
-        # print("Conv time: ", (pendulum.now()-conv_start).microseconds)
 
         if self.in_channels != self.out_channels:
             ybase = self.downsample(x)
         else:
             ybase = x
 
-        # start = pendulum.now()
         # ybase = torch.zeros(x.shape[0],
         #                     dense_y.shape[1],
         #                     x.shape[2],
         #                     x.shape[3]).cuda()
-        # print("instantiation time: ", (pendulum.now()-start).microseconds)
+        end = pendulum.now()
+        logger.debug("SparseBlock Conv time:\t{}".format(
+            (end-conv_start).as_timedelta()))
 
-        # scatter_time = pendulum.now()
+        scatter_time = pendulum.now()
         y = self.sparse_scatter(dense_y,
                                 ybase,
                                 indices, block_size, block_stride)
-        # print("SparseScatter time: ", (pendulum.now() - scatter_time).microseconds)
+        logger.debug("SparseScatter time:\t{}".format(
+            (pendulum.now() - scatter_time).as_timedelta()))
 
         return y
 
@@ -158,36 +172,64 @@ class Model(nn.Module):
             y = self.classifier(score4, mask)
         else:
             y = self.classifier(score4)
-        # print("Block time: ", (pendulum.now()-classif_start).microseconds)
+        # logger.debug("Block time: ", (pendulum.now()-classif_start).microseconds)
         return y
 
 
 torch.manual_seed(123)
 
-batch_size = 100
-data = torch.rand(batch_size, 3, 512, 512)
-mask = torch.rand(batch_size, 1, 64, 64) > 0.9
-# mask = torch.zeros(batch_size, 1, 64, 64)
-# mask[:, :, 0:10, 0:40] = 1
-print("Sparsity %= ", mask.sum().float()*100 / mask.numel())
+data_size = 10
+batch_size = 8
+
+
+def get_mask():
+    mask = torch.rand(data_size, 1, 64, 64) > 0.9
+    mask = torch.zeros(data_size, 1, 64, 64)
+    mask[:, :, 0:10, 3:23] = 1
+    mask[:, :, 33:55, 47:57] = 1
+    # mask = torch.zeros(data_size, 1, 16, 16)
+    # mask[:, :, 0:16:8, 0:16:8] = 1
+    # mask = torch.nn.functional.interpolate(mask, size=(64, 64), mode='nearest')
+
+    # mask = torch.zeros(data_size, 1, 64, 64)
+    # mask[:, :, 0:10, 0:40] = 1
+
+    # print("Sparsity %= ", mask.sum().float()*100 / mask.numel())
+    return mask
+
+
+print("Batch Size = ", batch_size)
 
 
 def run(sparse=True):
     print("Sparsity=", sparse)
 
-    model = Model(125, sparse=sparse).cuda()
+    model = Model(25, sparse=sparse).eval().cuda()
 
-    start = pendulum.now()
+    total_time = 0
 
-    for i in range(batch_size):
-        x = data[i].unsqueeze(0).cuda()
-        y = model(x, mask[i].unsqueeze(0).long().cuda())
+    mask = get_mask()
+    x = torch.rand(batch_size, 3, 512, 512).cuda()
 
-    end = pendulum.now()
+    for i in range(data_size):
+        # x = torch.rand(batch_size, 3, 512, 512).cuda()
 
-    timedelta = end-start
-    print("Average time (ms): ", timedelta.microseconds/batch_size)
-    return timedelta.microseconds/batch_size
+        start = pendulum.now()
+        y = model(x, mask[i:i+batch_size].long().cuda())
+        end = pendulum.now()
+
+        # y.sum()
+        y.add_(1)
+
+        timedelta = end-start
+        logger.warn("Model time\t\t{}".format(timedelta.as_timedelta()))
+        if i >= 0:
+            total_time += timedelta.microseconds
+
+    print("Total time (μs): ", total_time)
+    avg_time = float(total_time)/data_size
+    print("Average time (μs): ", avg_time)
+    return avg_time
 
 
 dense_time = run(sparse=False)
