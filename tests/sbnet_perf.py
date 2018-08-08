@@ -7,7 +7,7 @@ import pendulum
 import logging
 
 logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.INFO)
 
 logger = logging.Logger(__name__)
 
@@ -176,17 +176,17 @@ class Model(nn.Module):
         return y
 
 
-torch.manual_seed(123)
-
 data_size = 10
-batch_size = 8
+batch_size = 2
 
 
 def get_mask():
+    torch.manual_seed(123)
     mask = torch.rand(data_size, 1, 64, 64) > 0.9
-    mask = torch.zeros(data_size, 1, 64, 64)
-    mask[:, :, 0:10, 3:23] = 1
-    mask[:, :, 33:55, 47:57] = 1
+    # mask = torch.zeros(data_size, 1, 64, 64)
+    # mask[:, :, 0:10, 3:23] = 1
+    # mask[:, :, 33:55, 47:57] = 1
+
     # mask = torch.zeros(data_size, 1, 16, 16)
     # mask[:, :, 0:16:8, 0:16:8] = 1
     # mask = torch.nn.functional.interpolate(mask, size=(64, 64), mode='nearest')
@@ -194,7 +194,7 @@ def get_mask():
     # mask = torch.zeros(data_size, 1, 64, 64)
     # mask[:, :, 0:10, 0:40] = 1
 
-    # print("Sparsity %= ", mask.sum().float()*100 / mask.numel())
+    print("Sparsity %= ", mask.sum().float()*100 / mask.numel())
     return mask
 
 
@@ -223,7 +223,7 @@ def run(sparse=True):
 
         timedelta = end-start
         logger.warn("Model time\t\t{}".format(timedelta.as_timedelta()))
-        if i >= 0:
+        if i > 0:
             total_time += timedelta.microseconds
 
     print("Total time (μs): ", total_time)
