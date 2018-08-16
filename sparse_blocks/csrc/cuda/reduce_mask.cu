@@ -116,11 +116,13 @@ __global__ void reducemask_forward_cuda_kernel(T* mask,
         // For sizes >= blockIdx.x we already reduced in the above loop
         const int numWarps = min(DIV_CEIL(bH*bW, warpLanes), blockIdx.x);
         #pragma unroll
-        for (int iWarp = 1; iWarp < numWarps; iWarp++)
+        for (int iWarp = 1; iWarp < numWarps; iWarp++) {
             mx1 = avg_pool ? (mx1 + shmemx[iWarp]) : max(mx1, shmemx[iWarp]);
+        }
 
-        if (avg_pool)
+        if (avg_pool) {
             mx1 /= float(bH*bW);
+        }
 
         if (mx1 > threshold) {
             // now we have the maximums computed for each block
@@ -147,7 +149,7 @@ __global__ void reducemask_forward_cuda_kernel(T* mask,
     } // if (tid == 0)
 }
 
-at::Tensor reducemask_forward_cuda(const at::Tensor &mask,
+std::tuple<at::Tensor, int> reducemask_forward_cuda(const at::Tensor &mask,
     int N,
     int H,
     int W,
@@ -166,10 +168,12 @@ at::Tensor reducemask_forward_cuda(const at::Tensor &mask,
     
     int max_indices = N * blockCntH * blockCntW;
     
+    // We can divide the number of indices into bins to ease the atomics pressure on memory.
     unsigned int num_bins = 1;
-    unsigned int binSize = (max_indices + num_bins - 1) / num_bins;
+    // The max size of each bin
+    unsigned int bin_size = (max_indices + num_bins - 1) / num_bins;
 
-    // Number of indices of active blocks
+    // Number of indices of active blocks per bin
     at::Tensor bin_counts = at::zeros({(int)num_bins}, torch::CUDA(at::kInt));
     
     // triples of [n, ih, iw] indices for active blocks.
@@ -187,7 +191,7 @@ at::Tensor reducemask_forward_cuda(const at::Tensor &mask,
             mask.data<scalar_t>(), 
             N, H, W,
             threshold,
-            num_bins, binSize,
+            num_bins, bin_size,
             bin_counts.data<int>(),
             bOffsH0, bOffsW0,
             blockStrH, blockStrW,

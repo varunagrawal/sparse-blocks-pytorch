@@ -11,20 +11,20 @@
 #include "cuda/sparse_scatter.h"
 #endif
 
-at::Tensor reducemask_forward(const at::Tensor &mask,
-                              int N,
-                              int H,
-                              int W,
-                              float threshold,
-                              int bOffsH0,
-                              int bOffsW0,
-                              int blockH,
-                              int blockW,
-                              int blockCntH,
-                              int blockCntW,
-                              int blockStrH,
-                              int blockStrW,
-                              bool avg_pool)
+std::tuple<at::Tensor, int> reducemask_forward(const at::Tensor &mask,
+                                               int N,
+                                               int H,
+                                               int W,
+                                               float threshold,
+                                               int bOffsH0,
+                                               int bOffsW0,
+                                               int blockH,
+                                               int blockW,
+                                               int blockCntH,
+                                               int blockCntW,
+                                               int blockStrH,
+                                               int blockStrW,
+                                               bool avg_pool)
 {
     if (mask.type().is_cuda())
     {
