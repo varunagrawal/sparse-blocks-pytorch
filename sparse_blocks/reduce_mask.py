@@ -13,23 +13,36 @@ class ReduceMaskFunc(Function):
         ctx.N, C, ctx.H, ctx.W = mask.shape
         assert C == 1, "Mask should have a single channel"
 
-        if mask.is_cuda:
-            if len(mask.shape) >= 4:
-                mask = mask.squeeze(1)  # mask should be (N, C=1, H, W)
+        # TODO reducemask kernel does not scale to large masks in terms of runtime
+        # if mask.is_cuda:
+        #     if len(mask.shape) >= 4:
+        #         mask = mask.squeeze(1)  # mask should be (N, C=1, H, W)
 
-            output = _C.reducemask_forward(mask,
-                                           ctx.N, ctx.H, ctx.W, threshold,
-                                           block_offset[0], block_offset[1],
-                                           block_size[0], block_size[1],
-                                           block_cnt[0], block_cnt[1],
-                                           block_stride[0], block_stride[1],
-                                           avg_pool)
+        # output, n_idx = _C.reducemask_forward(mask,
+        #                                       ctx.N, ctx.H, ctx.W, threshold,
+        #                                       block_offset[0], block_offset[1],
+        #                                       block_size[0], block_size[1],
+        #                                       block_cnt[0], block_cnt[1],
+        #                                       block_stride[0], block_stride[1],
+        #                                       avg_pool)
+        # output = output[:n_idx]
+
+        # else:
+
+        mask = nn.functional.pad(
+            mask, padding, mode="constant")
+        if avg_pool:
+            mask_ = nn.functional.avg_pool2d(mask.float(),
+                                             block_size,
+                                             block_stride,
+                                             0)
         else:
-            mask = nn.functional.pad(
-                mask, padding, mode="constant")
-            mask_ = nn.functional.max_pool2d(mask, block_size, block_stride, 0)
-            mask_ = torch.squeeze(mask_, 1)  # remove channel dimension
-            output = torch.nonzero(mask_ > threshold)
+            mask_ = nn.functional.max_pool2d(mask.float(),
+                                             block_size,
+                                             block_stride,
+                                             0)
+        mask_ = torch.squeeze(mask_, 1)  # remove channel dimension
+        output = torch.nonzero(mask_ > threshold).int()
 
         # output = ReduceMaskFunc._sort(output)
         return output
