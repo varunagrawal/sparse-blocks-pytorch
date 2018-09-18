@@ -38,7 +38,9 @@ def get_extensions():
             # need to set NVIDIA compute capability flags to compile correctly
             # also set `-w` to disable warnings in the output during compilation.
             extra_compile_args={'cxx': ['-g', '-w'],
-                                'nvcc': ['-gencode=arch=compute_61,code=sm_61', '-w']}
+                                'nvcc': ['-gencode=arch=compute_61,code=sm_61', '-w', '-DCUDA_HAS_FP16=1',
+                                         '-D__CUDA_NO_HALF_OPERATORS__',
+                                         '-D__CUDA_NO_HALF_CONVERSIONS__', '-D__CUDA_NO_HALF2_OPERATORS__']}
         )
     ]
 
