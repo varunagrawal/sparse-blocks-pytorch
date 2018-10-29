@@ -3,9 +3,6 @@ import torch
 from torch import nn
 from sparse_blocks import SparseGather, SparseScatter, ReduceMask
 
-from utils import convert_mask_to_block_indices
-import tensorflow as tf
-
 from fixtures import gt_dict
 
 
