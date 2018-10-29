@@ -38,9 +38,7 @@ def get_extensions():
             # need to set NVIDIA compute capability flags to compile correctly
             # also set `-w` to disable warnings in the output during compilation.
             extra_compile_args={'cxx': ['-g', '-w'],
-                                'nvcc': ['-gencode=arch=compute_61,code=sm_61', '-w', '-DCUDA_HAS_FP16=1',
-                                         '-D__CUDA_NO_HALF_OPERATORS__',
-                                         '-D__CUDA_NO_HALF_CONVERSIONS__', '-D__CUDA_NO_HALF2_OPERATORS__']}
+                                'nvcc': ['-gencode=arch=compute_61,code=sm_61', '-w']}
         )
     ]
 
@@ -59,7 +57,7 @@ setup(
     author_email='varunagrawal@gatech.edu',
     url='https://varunagrawal.github.io',
     description='Building Blocks for Sparse Blocks Network',
-    long_description="",
+    long_description="https://arxiv.org/abs/1801.02108",
     license='BSD',
 
     # Package info
